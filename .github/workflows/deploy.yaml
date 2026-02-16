@@ -13,9 +13,6 @@ permissions:
   contents: read
 
 jobs:
-  # =========================
-  # CI JOB (Build & Test)
-  # =========================
   ci:
     name: Build and Test
     runs-on: self-hosted
@@ -39,12 +36,9 @@ jobs:
       - name: Build Vite app
         run: npm run build
 
-  # =========================
-  # CD JOB (Deploy & Start Server)
-  # =========================
   cd:
     name: Deploy to Production
-    needs: [ci]
+    needs: ci
     runs-on: self-hosted
 
     environment:
@@ -71,26 +65,19 @@ jobs:
 
       - name: Deploy build files
         run: |
-          echo "🚀 Starting deployment..."
           DEPLOY_DIR="$HOME/my-app/current"
           mkdir -p "$DEPLOY_DIR"
-
-          echo "🧹 Clearing old files..."
           rm -rf "$DEPLOY_DIR"/*
-
-          echo "📦 Copying new build..."
           cp -r ./dist/* "$DEPLOY_DIR/"
-
           chmod -R 755 "$DEPLOY_DIR"
 
-          echo "✅ Deployment complete"
+      - name: Stop old server
+        run: pkill -f "serve -s" || true
 
-      - name: Stop old server (if running)
+      - name: Start server
+        run: serve -s $HOME/my-app/current -l 3000 > server.log 2>&1 &
+
+      - name: Deployment summary
         run: |
-          pkill -f "serve -s" || true
-
-      - name: Start server on port 3000
-        run: |
-          serve -s $HOME/my-app/current -l 3000 > server.log 2>&1 &
-
-      - name
+          echo "Deployment complete"
+          echo "URL: http://localhost:3000"
