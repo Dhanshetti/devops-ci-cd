@@ -1,15 +1,96 @@
-ci:
-  name: Build and Test
-  runs-on: self-hosted
+name: React CI/CD Pipeline
 
-  steps:
-    - uses: actions/checkout@v4
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
-    - uses: actions/setup-node@v4
-      with:
-        node-version: "20"
-        cache: "npm"
+permissions:
+  contents: read
 
-    - run: npm install
-    - run: npm run test:run
-    - run: npm run build
+jobs:
+  # =========================
+  # CI JOB (Build & Test)
+  # =========================
+  ci:
+    name: Build and Test
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm run test:run
+
+      - name: Build Vite app
+        run: npm run build
+
+  # =========================
+  # CD JOB (Deploy & Start Server)
+  # =========================
+  cd:
+    name: Deploy to Production
+    needs: [ci]
+    runs-on: self-hosted
+
+    environment:
+      name: production
+      url: http://localhost:3000
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build project
+        run: npm run build
+
+      - name: Install serve globally
+        run: npm install -g serve
+
+      - name: Deploy build files
+        run: |
+          echo "🚀 Starting deployment..."
+          DEPLOY_DIR="$HOME/my-app/current"
+          mkdir -p "$DEPLOY_DIR"
+
+          echo "🧹 Clearing old files..."
+          rm -rf "$DEPLOY_DIR"/*
+
+          echo "📦 Copying new build..."
+          cp -r ./dist/* "$DEPLOY_DIR/"
+
+          chmod -R 755 "$DEPLOY_DIR"
+
+          echo "✅ Deployment complete"
+
+      - name: Stop old server (if running)
+        run: |
+          pkill -f "serve -s" || true
+
+      - name: Start server on port 3000
+        run: |
+          serve -s $HOME/my-app/current -l 3000 > server.log 2>&1 &
+
+      - name
