@@ -47,8 +47,10 @@ jobs:
         run: |
           echo "BUILD_PATH=$(pwd)/dist" >> $GITHUB_ENV
           echo "✅ Build available at: $(pwd)/dist"
-      - name: Start the application
-        run: npm start
+      - name: Start server
+        run: |
+          npm install -g serve
+          serve -s dist -l 3000 &
 
   cd:
     name: Deploy to Production
