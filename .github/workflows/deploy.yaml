@@ -47,10 +47,13 @@ jobs:
         run: |
           echo "BUILD_PATH=$(pwd)/dist" >> $GITHUB_ENV
           echo "✅ Build available at: $(pwd)/dist"
+      - name: Stop old server (if running)
+        run: |
+          pkill -f "serve -s dist" || true
+
       - name: Start server
         run: |
-          npm install -g serve
-          serve -s dist -l 3000 &
+        serve -s dist -l 3000 > server.log 2>&1 &
 
   cd:
     name: Deploy to Production
